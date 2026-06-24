@@ -1,8 +1,10 @@
-import pygame
+import pygame 
 import random
+from pygame import mixer
 
 pygame.init()
 pygame.font.init()
+pygame.mixer.init()
 
 WIDTH = 800
 HEIGHT = 600
@@ -20,6 +22,24 @@ player = pygame.Rect(375,500,50,50)
 
 bullets = []
 enemies = []
+
+particles = []
+powrups = []
+powerup_timer = 0
+double_shot = False
+powerup_end_time = 0 
+
+boss_active = False
+boss_rect = pygame.Rect(300, -100, 200, 60)
+boss_health = 50
+boss_max_health = 50
+boss_direction = 1
+boss_bullets = []
+boss_last_shot = 0
+boss_defeated = False
+
+gun_fx = pygame.mixer.Sound('gun.mp3')
+gun_fx.set_volume(0.4)
 
 right = False
 left = False
@@ -39,10 +59,18 @@ def draw():
       pygame.draw.rect(screen, (255,255,255), bullet)
     for enemy in enemies:
       pygame.draw.rect(screen, (0,255,0), enemy)
-      
+    
+    for p in powrups:
+      pygame.draw.rect(screen,(255,255,0),p)
+    for part in particles:
+      pygame.draw.rect(screen,(255,165,0), (part[0], part[1], 4, 4))
+    
     score_text = font.render(f"Score: {score}", True, (255, 255, 255)) 
     lives_text = font.render(f"Lives: {lives}", True, (255,50,50))
     level_text = font.render(f"Level: {level}", True, (50,150,255))
+    
+    if double_shot:
+      mode_text = font.render("DOUBLE SHOT ACTIVE!", True, (255,255,0))
     
     screen.blit(score_text,(10,10))
     screen.blit(lives_text,(10,50)) 
@@ -81,8 +109,14 @@ def move():
     player.x = 750
   
   if firing:
-    bullet = pygame.Rect(player.x + 20,player.y - 10,10,20)
-    bullets.append(bullet)
+    if double_shot:
+      b1 = pygame.Rect(player.x, player.y-10,10,20)
+      b2 = pygame.Rect(player.x+40,player.y-10,10,20)
+      bullets.append(b1)
+      bullets.append(b2)
+    else:
+      bullet = pygame.Rect(player.x + 20,player.y - 10,10,20)
+      bullets.append(bullet)
     firing = False
 
   for b in bullets[:]: 
@@ -90,8 +124,26 @@ def move():
     if b.y <= 0:
       bullets.remove(b)
 
+def create_explosion(x,y):
+  for _ in range(15):
+    p_dx = random.randint(-4,4)
+    p_dy = random.randint(-4,4)
+    
+    if p_dx == 0 and p_dy ==0: p_dy=2
+    particles.append([x+20, y+20, p_dx, p_dy,20])
+    
+def update_particles():
+  for p in particles[:]:
+    p[0] += p[2]
+    p[1] += p[3]
+    p[4] -= 1
+    if p[4] <= 0:
+      particles.remove(p)
+
+
+
 def enemies_ships():
-  global enemies, last_enemy_time, coold_down, speed, score, level, lives, game_state
+  global enemies, last_enemy_time, coold_down, speed, score, level, lives, game_state, powerup_timer
   
   current_time = pygame.time.get_ticks()
       
@@ -115,12 +167,33 @@ def enemies_ships():
   
   for enemy in enemies[:]:
     enemy.y += speed
-    if enemy.y >= 560:
+    if enemy.colliderect(player):
+      create_explosion(enemy.x,enemy.y)
+      enemies.remove(enemy)
+      lives -= 1
+      if lives <= 0: game_state = 'game_over'
+    
+    
+    elif enemy.y >= 560:
       enemies.remove(enemy)
       score -= 5 
       lives -= 1
       if lives <= 0:
         game_state = 'game_over'
+  
+  powerup_timer += 1
+  if powerup_timer > 720:
+    powrups.append(pygame.Rect(random.randint(50,750), 0, 25,25))
+    powerup_timer = 0
+    
+  for p in powrups[:]:
+    p.y += 3
+    if p.colliderect(player):
+      global double_shot, powerup_end_time
+      double_shot = True
+      powerup_end_time = pygame.time.get_ticks() + 7000
+      powrups.remove(p)
+  
   
 def check_collosion():
   global score
@@ -129,6 +202,7 @@ def check_collosion():
       continue
     for bullet in bullets[:]:
       if bullet.colliderect(enemy):
+        create_explosion(enemy.x, enemy.y)
         enemies.remove(enemy)
         if bullet in bullets:
           bullets.remove(bullet)
@@ -163,6 +237,7 @@ def main():
       move()
       enemies_ships()
       check_collosion()
+      update_particles()
       
     draw()
     
@@ -177,6 +252,7 @@ def main():
           if event.key == pygame.K_d:
             right = True    
           if event.key == pygame.K_SPACE:
+            gun_fx.play()
             firing = True 
         else:
           if event.key == pygame.K_SPACE:
