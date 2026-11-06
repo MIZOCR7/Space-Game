@@ -1,0 +1,65 @@
+name: Build and Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: windows
+            sep: ';'
+            flags: --windowed
+          - os: ubuntu-latest
+            name: linux
+            sep: ':'
+            flags: ''
+          - os: macos-latest
+            name: mac
+            sep: ':'
+            flags: ''
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install pygame pyinstaller
+
+      - name: Build
+        shell: bash
+        run: |
+          pyinstaller --onefile ${{ matrix.flags }} --name SpaceFighter \
+            --add-data "gun.mp3${{ matrix.sep }}." \
+            --add-data "enemy_entry.mp3${{ matrix.sep }}." \
+            --add-data "game_over.mp3${{ matrix.sep }}." \
+            --add-data "boss_gun.mp3${{ matrix.sep }}." \
+            --add-data "enemy_dead.mp3${{ matrix.sep }}." \
+            --add-data "boss_dead.mp3${{ matrix.sep }}." \
+            main.py
+
+      - name: Package
+        shell: bash
+        run: |
+          if [ "${{ matrix.name }}" = "windows" ]; then
+            mv dist/SpaceFighter.exe SpaceFighter-windows.exe
+          else
+            tar -czf SpaceFighter-${{ matrix.name }}.tar.gz -C dist SpaceFighter
+          fi
+
+      - name: Upload to release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            SpaceFighter-windows.exe
+            SpaceFighter-${{ matrix.name }}.tar.gz
