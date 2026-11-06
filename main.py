@@ -1,6 +1,17 @@
 import pygame 
 import random
+import sys
+import os
 from pygame import mixer
+
+def resource_path(relative_path):
+    """ Get absolute path to resource, works for dev and for PyInstaller """
+    try:
+        
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+    return os.path.join(base_path, relative_path)
 
 pygame.init()
 pygame.font.init()
@@ -19,6 +30,7 @@ font = pygame.font.SysFont('Arial', 32)
 large_font = pygame.font.SysFont("Arial", 64)
 
 player = pygame.Rect(375,500,50,50)
+player2 = pygame.Rect(475,500,50,50)
 
 bullets = []
 enemies = []
@@ -38,28 +50,33 @@ boss_bullets = []
 boss_last_shot = 0
 boss_defeated = False
 
-gun_fx = pygame.mixer.Sound('gun.mp3')
+gun_fx = pygame.mixer.Sound(resource_path('gun.mp3'))
 gun_fx.set_volume(0.4)
 
-boss_fx = pygame.mixer.Sound('enemy_entry.mp3')
+boss_fx = pygame.mixer.Sound(resource_path('enemy_entry.mp3'))
 boss_fx.set_volume(0.4) 
 
-dead_fx = pygame.mixer.Sound('game_over.mp3')
+dead_fx = pygame.mixer.Sound(resource_path('game_over.mp3'))
 dead_fx.set_volume(0.4)
 
-boss_gun = pygame.mixer.Sound("boss_gun.mp3")
+boss_gun = pygame.mixer.Sound(resource_path("boss_gun.mp3"))
 boss_gun.set_volume(0.4)
 
-enemy_dead = pygame.mixer.Sound("enemy_dead.mp3")
+enemy_dead = pygame.mixer.Sound(resource_path("enemy_dead.mp3"))
 enemy_dead.set_volume(0.4)
 
-boss_dead = pygame.mixer.Sound("boss_dead.mp3")
+boss_dead = pygame.mixer.Sound(resource_path("boss_dead.mp3"))
 boss_dead.set_volume(0.4) 
 
 right = False
 left = False
 
 firing = False
+
+right2 = False
+left2 = False 
+
+firing2 = False 
 
 game_state = 'menu'
 
@@ -135,7 +152,21 @@ BOSS_PIXELS = [
     "  Y         Y      YY      Y         Y  "
 ]
 
+PLAYER2_PIXELS = [
+    "    C    ",
+    "   CCC   ",
+    "  CCWCC  ",
+    " CCCCCCC ",
+    " BB C BB ",
+    " BBBBBBB ",
+    "  B   B  ",
+    "  M   M  ",
+    "  O   O  "
+]
+
 player_img = create_pixel_art(PLAYER_PIXELS, (50, 50))
+
+player2_img = create_pixel_art(PLAYER2_PIXELS, (50, 50))
 enemy_img = create_pixel_art(ENEMY_PIXELS, (40, 40))
 boss_img = create_pixel_art(BOSS_PIXELS, (200, 60))
 
@@ -145,6 +176,7 @@ def draw():
       screen.fill((20,0,0)) 
       
     screen.blit(player_img, (player.x, player.y)) 
+    screen.blit(player2_img, (player2.x, player2.y)) 
     for bullet in bullets:
       pygame.draw.rect(screen, (255,255,255), bullet)
     for enemy in enemies:
@@ -198,8 +230,9 @@ def draw():
   pygame.display.update()
 
 def move():
-  global firing
+  global firing, firing2 
   dx = 0
+  dx2 = 0
   
   if right == True:
     dx += 10
@@ -213,6 +246,19 @@ def move():
   if player.x >= 750:
     player.x = 750
   
+  if right2 == True:
+    dx2 += 10
+  if left2 == True:
+    dx2 -= 10
+    
+  player2.x += dx2
+  
+  if player2.x <= 0:
+    player2.x = 0
+  if player2.x >= 750:
+    player2.x = 750
+  
+  
   if firing:
     if double_shot:
       b1 = pygame.Rect(player.x, player.y-10,10,20)
@@ -223,7 +269,20 @@ def move():
       bullet = pygame.Rect(player.x + 20,player.y - 10,10,20)
       bullets.append(bullet)
     firing = False
-
+  
+  
+  if firing2:
+    if double_shot:
+      b1 = pygame.Rect(player2.x, player2.y-10,10,20)
+      b2 = pygame.Rect(player2.x+40,player2.y-10,10,20)
+      bullets.append(b1)
+      bullets.append(b2)
+    else:
+      bullet = pygame.Rect(player2.x + 20,player2.y - 10,10,20)
+      bullets.append(bullet)
+    firing2 = False 
+    
+    
   for b in bullets[:]: 
     b.y -= 10
     if b.y <= 0:
@@ -284,7 +343,7 @@ def enemies_ships():
   
   for enemy in enemies[:]:
     enemy.y += speed
-    if enemy.colliderect(player):
+    if enemy.colliderect(player) or enemy.colliderect(player2):
       create_explosion(enemy.x,enemy.y)
       enemy_dead.play()
       enemies.remove(enemy)
@@ -309,7 +368,7 @@ def enemies_ships():
     
   for p in powrups[:]:
     p.y += 3
-    if p.colliderect(player):
+    if p.colliderect(player) or p.colliderect(player2):
       global double_shot, powerup_end_time
       double_shot = True
       powerup_end_time = pygame.time.get_ticks() + 7000
@@ -341,7 +400,7 @@ def boss_battle():
     
   for bb in boss_bullets[:]:
     bb.y += 7
-    if bb.colliderect(player):
+    if bb.colliderect(player) or bb.colliderect(player2):
       boss_bullets.remove(bb)
       lives -= 1
       if lives <= 0:
@@ -381,7 +440,7 @@ def check_collosion():
         break 
 
 def reset_game():
-  global score, lives, level, speed, coold_down, enemies, bullets, last_enemy_time
+  global score, lives, level, speed, coold_down, enemies, bullets, last_enemy_time, left2, right2, firing2
   global left, right, firing, boss_active, boss_health, boss_bullets, boss_defeated
   score = 0
   lives = 3
@@ -402,11 +461,17 @@ def reset_game():
   left = False
   right = False
   firing = False
-  player.x = 375
   player.y = 500
+  
+  left2 = False
+  right2 = False
+  firing2 = False
+  player.x = 275
+  player2.x = 475
+  player2.y = 500
         
 def main():
-  global left, right, firing, game_state
+  global left, right, firing, game_state, left2, right2, firing2
   run = True
   while run:
     clock.tick(FPS)
@@ -434,6 +499,13 @@ def main():
           if event.key == pygame.K_SPACE:
             gun_fx.play()
             firing = True 
+          if event.key == pygame.K_LEFT:
+            left2 = True
+          if event.key == pygame.K_RIGHT:
+            right2 = True
+          if event.key == pygame.K_UP:
+            gun_fx.play()
+            firing2 = True
         else:
           if event.key == pygame.K_SPACE:
             reset_game()
@@ -444,6 +516,10 @@ def main():
           left = False
         if event.key == pygame.K_d:
           right = False 
+        if event.key == pygame.K_LEFT:
+          left2 = False
+        if event.key == pygame.K_RIGHT:
+          right2 = False
 
   pygame.quit()
 
