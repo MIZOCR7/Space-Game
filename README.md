@@ -7,9 +7,7 @@ A 2 player co-op space shooter made with Python and Pygame.
 ## About
 Space Fighter is an arcade shooter where two players share one screen. Enemies fall faster as your score goes up, and at 150 points a boss shows up. Kill it and the game goes on with even faster enemies. It's all plain functions, no classes, so it's easy to read if you want to see how a game loop, simple particles and a boss fight work.
 
-## Screenshots
-<img width="794" height="629" alt="Screenshot 2026-11-06 135049" src="https://github.com/user-attachments/assets/baf35b75-6f44-4f47-8fc1-879ba2178282" />
-<img width="800" height="624" alt="image" src="https://github.com/user-attachments/assets/c0c6d082-6d9d-4b79-9cfe-bff417e6f943" />
+
 
 ## Theme
 The theme is CO-OP. Two ships work together to kill the boss and get a high score. Score and lives are shared, so one mistake from either player hurts both of you. You win together or lose together.
@@ -32,3 +30,7 @@ Windows may show a SmartScreen warning because the game is not signed. Click "Mo
 
 ### Run from source
 1. Clone the repository
+
+## Screenshots
+<img width="794" height="629" alt="Screenshot 2026-11-06 135049" src="https://github.com/user-attachments/assets/baf35b75-6f44-4f47-8fc1-879ba2178282" />
+<img width="800" height="624" alt="image" src="https://github.com/user-attachments/assets/c0c6d082-6d9d-4b79-9cfe-bff417e6f943" />
